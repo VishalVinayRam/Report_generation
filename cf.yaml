@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simple Python Lambda Function with IAM Role and Scheduled Task
+
+Parameters:
+  StackName:
+    Type: String
+    Description: 'Name of the CloudFormation stack'
+
+  S3BucketName:
+    Type: String
+    Description: 'Name of the S3 bucket containing Lambda code'
+
+  S3KeyPath:
+    Type: String
+    Description: 'Path to the Lambda code ZIP file within the S3 bucket'
+
+Resources:
+  MyLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub '${StackName}-PullMarketsFunction'
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt MyLambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 300
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: !Ref S3KeyPath
+
+  MyLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${StackName}-PullMarketsRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action: 's3:*'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+
+  MyLambdaEventRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Name: !Sub '${StackName}-PullMarketsSchedule'
+      Description: 'Triggers a download of markets'
+      ScheduleExpression: 'rate(7 days)'
+      Targets:
+        - Id: PullMarketsScheduleTarget
+          Arn: !GetAtt MyLambdaFunction.Arn
+      State: ENABLED
+
+  MyLambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !Ref MyLambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt MyLambdaEventRule.Arn
+
+Outputs:
+  LambdaFunctionArn:
+    Value: !GetAtt MyLambdaFunction.Arn
+    Description: ARN of the Lambda function
