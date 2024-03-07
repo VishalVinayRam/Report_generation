@@ -1,0 +1,5 @@
+Resource Type,Resource Name,Status
+S3,Proper,NO Public Access Enabled
+Security Group,['launch-wizard-11'], Allowed 0.0.0.0 Access
+RDS,Proper,Read replicas enabled for all instances
+Cloud trial,['i-0b43bc289c4be7005'],These are no issues

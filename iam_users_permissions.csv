@@ -1,0 +1,3 @@
+IAM User,Attached Policy,Inline Policy
+cross_account,AmazonEC2FullAccess,
+vishal,"AdministratorAccess, AWSCodeCommitFullAccess, AWSCostAndUsageReportAutomationPolicy",
